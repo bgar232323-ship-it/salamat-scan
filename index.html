@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1B7F4B">
+  <meta name="description" content="سالامت اسکن — اسکنگر بارکد مواد غذایی">
+  <meta name="color-scheme" content="light dark">
+
+  <title>سالامت اسکن</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <!-- iOS home-screen icon (180x180) -->
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="سالامت اسکن">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- ===== App shell ===== -->
+  <div class="app" id="app">
+
+    <!-- ---------- Home screen ---------- -->
+    <section class="screen screen--active" id="screen-home" data-screen="home" aria-label="خانه">
+      <header class="home__header">
+        <div class="home__logo" aria-hidden="true">
+          <!-- Simple inline barcode mark, no external asset -->
+          <svg viewBox="0 0 48 48" width="48" height="48" role="img" aria-hidden="true">
+            <rect x="4" y="14" width="4" height="20" rx="1" fill="currentColor"/>
+            <rect x="11" y="14" width="2" height="20" rx="1" fill="currentColor"/>
+            <rect x="16" y="14" width="6" height="20" rx="1" fill="currentColor"/>
+            <rect x="25" y="14" width="2" height="20" rx="1" fill="currentColor"/>
+            <rect x="30" y="14" width="4" height="20" rx="1" fill="currentColor"/>
+            <rect x="37" y="14" width="7" height="20" rx="1" fill="currentColor"/>
+          </svg>
+        </div>
+        <h1 class="home__title">سالامت اسکن</h1>
+        <p class="home__tagline">بارکد محصولات غذایی را اسکن کنید و اطلاعات تغذیه‌ای را سریع ببینید.</p>
+      </header>
+
+      <div class="home__actions">
+        <button type="button" class="btn btn--primary btn--block" id="btn-start-scan">
+          اسکن بارکد
+        </button>
+        <!-- Shown only on Android/Chrome when beforeinstallprompt fires -->
+        <button type="button" class="btn btn--secondary btn--block" id="btn-install" hidden>
+          نصب برنامه
+        </button>
+      </div>
+    </section>
+
+    <!-- ---------- Scan screen ---------- -->
+    <section class="screen screen--scan" id="screen-scan" data-screen="scan" aria-label="اسکن" hidden>
+      <video class="scan__video" id="camera-preview" playsinline autoplay muted></video>
+
+      <!-- Camera overlay: dimmed area with a clear scanning window -->
+      <div class="scan__overlay" aria-hidden="true">
+        <div class="scan__frame">
+          <span class="scan__corner scan__corner--tr"></span>
+          <span class="scan__corner scan__corner--tl"></span>
+          <span class="scan__corner scan__corner--br"></span>
+          <span class="scan__corner scan__corner--bl"></span>
+          <span class="scan__line"></span>
+        </div>
+      </div>
+
+      <!-- Close button (top) -->
+      <button type="button" class="scan__close" id="btn-close-scan" aria-label="بستن دوربین">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" fill="none"/>
+        </svg>
+      </button>
+
+      <p class="scan__hint" id="scan-hint">بارکد را داخل قاب قرار دهید</p>
+
+      <!-- Manual entry (bottom, thumb reach) -->
+      <div class="scan__bottom">
+        <button type="button" class="btn btn--secondary btn--block" id="btn-manual-scan">
+          ورود دستی بارکد
+        </button>
+      </div>
+
+      <!-- Inline error panel shown when the camera cannot be used -->
+      <div class="scan__error" id="scan-error" role="alert" hidden>
+        <p class="scan__error-text" id="scan-error-text"></p>
+        <button type="button" class="btn btn--secondary" id="btn-scan-retry">تلاش دوباره</button>
+        <button type="button" class="btn btn--ghost" id="btn-scan-error-close">بازگشت</button>
+      </div>
+    </section>
+
+    <!-- ---------- History screen (placeholder) ---------- -->
+    <section class="screen" id="screen-history" data-screen="history" aria-label="تاریخچه" hidden>
+      <header class="page__header">
+        <h2 class="page__title">تاریخچه</h2>
+        <p class="page__subtitle">اسکن‌های شما اینجا ذخیره می‌شوند.</p>
+      </header>
+      <div class="empty" id="history-empty">
+        <div class="empty__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="32" height="32">
+            <path d="M12 8v5l3 2" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" fill="none"/>
+            <circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.8" fill="none"/>
+          </svg>
+        </div>
+        <p class="empty__text">هنوز چیزی اسکن نکرده‌اید.</p>
+      </div>
+    </section>
+
+    <!-- ---------- Bottom sheet: barcode result ---------- -->
+    <div class="sheet-backdrop" id="result-backdrop" hidden></div>
+    <div class="sheet" id="result-sheet" role="dialog" aria-modal="true"
+         aria-labelledby="result-title" hidden>
+      <span class="sheet__handle" aria-hidden="true"></span>
+      <h3 class="sheet__title" id="result-title">بارکد شناسایی شد</h3>
+      <p class="sheet__code" id="result-code" dir="ltr"></p>
+      <div class="sheet__actions">
+        <button type="button" class="btn btn--primary btn--block" id="btn-rescan">اسکن دوباره</button>
+        <button type="button" class="btn btn--ghost btn--block" id="btn-result-close">بستن</button>
+      </div>
+    </div>
+
+    <!-- ---------- Bottom sheet: manual entry ---------- -->
+    <div class="sheet-backdrop" id="manual-backdrop" hidden></div>
+    <div class="sheet" id="manual-sheet" role="dialog" aria-modal="true"
+         aria-labelledby="manual-title" hidden>
+      <span class="sheet__handle" aria-hidden="true"></span>
+      <h3 class="sheet__title" id="manual-title">ورود دستی بارکد</h3>
+      <label class="field__label" for="manual-input">شماره بارکد</label>
+      <input class="field__input" id="manual-input" type="text"
+             inputmode="numeric" autocomplete="off" dir="ltr"
+             placeholder="۸ یا ۱۳ رقم" maxlength="13"
+             aria-describedby="manual-error">
+      <p class="field__error" id="manual-error" role="alert" hidden></p>
+      <div class="sheet__actions">
+        <button type="button" class="btn btn--primary btn--block" id="btn-manual-submit">ثبت</button>
+        <button type="button" class="btn btn--ghost btn--block" id="btn-manual-cancel">انصراف</button>
+      </div>
+    </div>
+
+    <!-- ---------- Install hint (iOS / in-app browsers) ---------- -->
+    <div class="install-hint" id="install-hint" role="status" hidden>
+      <p class="install-hint__text">
+        برای نصب: با Safari باز کنید، دکمه اشتراک‌گذاری را بزنید، سپس «Add to Home Screen».
+      </p>
+      <button type="button" class="install-hint__close" id="btn-install-hint-close"
+              aria-label="بستن راهنمای نصب">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" fill="none"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ---------- Bottom navigation ---------- -->
+    <nav class="bottom-nav" aria-label="ناوبری اصلی">
+      <button type="button" class="nav-item nav-item--active" data-nav="home">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path d="M4 11l8-6.5 8 6.5v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"
+                fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+        <span>خانه</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="scan">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5
+                   a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"
+                fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span>اسکن</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="history">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M12 7.5V12l3 1.8" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round"/>
+        </svg>
+        <span>تاریخچه</span>
+      </button>
+    </nav>
+  </div>
+
+  <noscript>
+    <p style="padding:16px;font-family:Vazirmatn,sans-serif;text-align:center">
+      برای استفاده از این برنامه باید جاوااسکریپت فعال باشد.
+    </p>
+  </noscript>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
